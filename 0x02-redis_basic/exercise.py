@@ -43,8 +43,8 @@ def replay(method: Callable) -> None:
     method_count = redis.get(method_key).decode('utf-8')
     print(f'{method_key} was called {method_count} times:')
     IOTuple = zip(redis.lrange(inputs, 0, -1), redis.lrange(outputs, 0, -1))
-    for inp, outp in list(IOTuple):
-        attr, data = inp.decode("utf-8"), outp.decode("utf-8")
+    for inp, out in list(IOTuple):
+        attr, data = inp.decode("utf-8"), out.decode("utf-8")
         print(f'{method_key}(*{attr}) -> {data}')
 
 
