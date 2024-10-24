@@ -8,19 +8,44 @@ import uuid
 from functools import wraps
 
 
-def count_calls(funct: Callable) -> Callable:
-    """
-    Function decorator to count the number of times a function is called.
-    """
-    key = funct.__qualname__
-    @wraps(funct)
+def call_history(method: Callable) -> Callable:
+    """Stores the history of inputs and outputs for a particular function"""
+    method_key = method.__qualname__
+    inputs, outputs = method_key + ':inputs', method_key + ':outputs'
+
+    @wraps(method)
     def wrapper(self, *args, **kwargs):
-        """
-        wrapper function
-        """
-        self._redis.incr(key)
-        return funct(self, *args, **kwargs)
+        self._redis.rpush(inputs, str(args))
+        result = method(self, *args, **kwargs)
+        self._redis.rpush(outputs, str(result))
+        return result
     return wrapper
+
+
+def count_calls(method: Callable) -> Callable:
+    """
+    decorator for counting calls
+    """
+    method_key = method.__qualname__
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        self._redis.incr(method_key)
+        return method(self, *args, **kwargs)
+    return wrapper
+
+
+def replay(method: Callable) -> None:
+    """Displays the history of calls of a particular function"""
+    method_key = method.__qualname__
+    inputs, outputs = method_key + ':inputs', method_key + ':outputs'
+    redis = method.__self__._redis
+    method_count = redis.get(method_key).decode('utf-8')
+    print(f'{method_key} was called {method_count} times:')
+    IOTuple = zip(redis.lrange(inputs, 0, -1), redis.lrange(outputs, 0, -1))
+    for inp, outp in list(IOTuple):
+        attr, data = inp.decode("utf-8"), outp.decode("utf-8")
+        print(f'{method_key}(*{attr}) -> {data}')
 
 
 class Cache:
