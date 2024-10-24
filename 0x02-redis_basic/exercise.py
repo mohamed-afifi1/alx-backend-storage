@@ -38,7 +38,9 @@ def count_calls(method: Callable) -> Callable:
 
 
 def replay(method: Callable) -> None:
-    """Displays the history of calls of a particular function"""
+    """
+    Displays the history of calls of a particular function
+    """
     method_key = method.__qualname__
     inputs, outputs = method_key + ':inputs', method_key + ':outputs'
     redis = method.__self__._redis
